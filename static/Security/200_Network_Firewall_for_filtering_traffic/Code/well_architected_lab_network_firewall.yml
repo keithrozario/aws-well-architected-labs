@@ -1,0 +1,267 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template is from: https://www.wellarchitectedlabs.com/
+  **WARNING** You will be billed for the AWS resources created if you create a stack from this template.
+  Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+  Licensed under the Apache License, Version 2.0 (the "License").
+  You may not use this file except in compliance with the License.
+  A copy of the License is located at
+      https://www.apache.org/licenses/LICENSE-2.0
+  or in the "license" file accompanying this file. This file is distributed 
+  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
+  express or implied. See the License for the specific language governing 
+  permissions and limitations under the License.
+
+Parameters:
+  NamingPrefix:
+    Type: String
+    Description: The naming prefix for resources created by this template, to ensure resources created in this stack have unique names, and are easily identified.
+    Default: "well-architected-labs"
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Description: AMI ID for the EC2 instances, the default is the latest Amazon Linux 2 AMI.
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  #VPC
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
+      CidrBlock: '10.0.0.0/16'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "VPC"]]
+  IGW:
+    #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-internetgateway.html
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "IGW"]]
+  IGWAttach:
+    #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc-gateway-attachment.html
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
+  IGWRoute:
+    Type: 'AWS::EC2::Route'
+    #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html
+    DependsOn:
+      - NetworkFirewall
+    Properties:
+      DestinationCidrBlock: "10.0.2.0/24"
+      VpcEndpointId: !Select [1, !Split [":", !Select [0, !GetAtt NetworkFirewall.EndpointIds]]]  
+      RouteTableId: !Ref IGWRouteTable
+  IGWRouteTable:
+    #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route-table.html
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "IGW-RTB"]]
+  IGWRouteTableAssociation:
+    Type: AWS::EC2::GatewayRouteTableAssociation
+    Properties:
+      GatewayId: !Ref IGW
+      RouteTableId: !Ref IGWRouteTable
+  
+
+# Endpoint Subnet
+  EndpointSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: "10.0.1.0/24"
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join ["-", [!Ref NamingPrefix, "endpoint-subnet"]]
+  EndpointSubnetRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGW
+      RouteTableId: !Ref EndpointSubnetRouteTable
+  EndpointSubnetRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "endpoint-subnet-RTB"]]
+  EndpointSubnetTableAssociation:
+    DependsOn:
+      - EndpointSubnet
+      - EndpointSubnetRouteTable
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref EndpointSubnetRouteTable
+      SubnetId: !Ref EndpointSubnet
+
+#EC2 Subnet
+  EC2Subnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: "10.0.2.0/24"
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join ["-", [!Ref NamingPrefix, "ec2-subnet"]]
+      MapPublicIpOnLaunch: True 
+  EC2SubnetRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn:
+      - NetworkFirewall
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      VpcEndpointId: !Select [1, !Split [":", !Select [0, !GetAtt NetworkFirewall.EndpointIds]]]  
+      RouteTableId: !Ref EC2SubnetRouteTable
+  EC2SubnetRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "ec2-subnet-RTB"]]
+  EC2SubnetRouteTableAssociation:
+    DependsOn:
+      - EC2Subnet
+      - EC2SubnetRouteTable
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref EC2SubnetRouteTable
+      SubnetId: !Ref EC2Subnet
+
+# AWS Network Firewall
+  NetworkFirewall:
+    DependsOn:
+      - EndpointSubnet
+    Type: AWS::NetworkFirewall::Firewall
+    Properties: 
+      DeleteProtection: False
+      Description: "Well Architected AWS Network Firewall Lab"
+      FirewallName: !Join ["-", [!Ref NamingPrefix, "anf"]]
+      FirewallPolicyArn: !Ref FirewallPolicy
+      FirewallPolicyChangeProtection: False
+      SubnetChangeProtection: False
+      SubnetMappings: 
+        - SubnetId: !Ref EndpointSubnet
+      VpcId: !Ref VPC
+
+  FirewallPolicy:
+    Type: 'AWS::NetworkFirewall::FirewallPolicy'
+    Properties:
+      FirewallPolicyName: !Join ["-", [!Ref NamingPrefix, "anf-policy"]]
+      FirewallPolicy:
+        StatelessDefaultActions:
+          - 'aws:forward_to_sfe'
+        StatelessFragmentDefaultActions:
+          - 'aws:forward_to_sfe'
+        StatefulRuleGroupReferences:
+          - ResourceArn: !Ref StatefulRulegroup
+        StatelessRuleGroupReferences:
+          - ResourceArn: !Ref StatelessRulegroup
+            Priority: 1
+      Description: Well Architected Lab Firewall Rule policy
+
+  StatefulRulegroup:
+    Type: 'AWS::NetworkFirewall::RuleGroup'
+    Properties:
+      RuleGroupName: !Join ["-", [!Ref NamingPrefix, "stateful-RG"]]
+      Description: Well Architected Labs Default Stateful Rule Group
+      Type: STATEFUL
+      RuleGroup:
+        RulesSource:
+          RulesSourceList:
+            GeneratedRulesType: ALLOWLIST
+            TargetTypes: 
+              - TLS_SNI
+              - HTTP_HOST
+            Targets: 
+              - .amazon.com
+              - .amazonaws.com
+      Capacity: 50
+
+  StatelessRulegroup:
+    Type: 'AWS::NetworkFirewall::RuleGroup'
+    Properties: 
+      RuleGroupName: !Join ["-", [!Ref NamingPrefix, "stateless-RG"]]
+      Description: Well Architected Labs Default Stateless Rule Group
+      Type: STATELESS
+      RuleGroup:
+        RulesSource:
+          StatelessRulesAndCustomActions:
+            StatelessRules:
+              - RuleDefinition:
+                  MatchAttributes:
+                    Sources:
+                      - AddressDefinition: 0.0.0.0/0
+                    Destinations:
+                      - AddressDefinition: 0.0.0.0/0                     
+                    Protocols:
+                    # https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+                      - 1
+                  Actions:
+                    - 'aws:drop'
+                Priority: 10
+      Capacity: 20
+
+  # IAM Role to enable Cloudwatch Logs as well as SSM access for the test.
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ["-", [!Ref NamingPrefix, "IAMRole"]]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Join ["-", [!Ref NamingPrefix, "InstanceProfileIAMRole"]]
+      Path: /
+      Roles:
+        - !Ref IAMRole
+  Ec2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref LatestAmiId
+      SubnetId: !Ref EC2Subnet
+      InstanceType: t3.micro
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "instance"]]
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow all outbound
+        GroupName: !Join ["-", [!Ref NamingPrefix, "ec2-sg"]]
+        VpcId: !Ref VPC
+        SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+        Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref NamingPrefix, "ec2-sg"]]
