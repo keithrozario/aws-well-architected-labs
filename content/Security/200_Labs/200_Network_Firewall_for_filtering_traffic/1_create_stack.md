@@ -24,7 +24,7 @@ Using AWS CloudFormation we are going to deploy:
 
 ## Deploying Cloudformation Stack
 
-1. Download the latest version of the CloudFormation template here: [well_architected_lab_network_firewall.yaml](/Security/200_Network_Firewall_for_filtering_traffic/Code/well_architected_lab_network_firewall.yaml)
+1. Download the latest version of the CloudFormation template here: [well_architected_lab_network_firewall.yml](/Security/200_Network_Firewall_for_filtering_traffic/Code/well_architected_lab_network_firewall.yml)
 
 {{% common/CreateNewCloudFormationStack stackname="network-firewall" templatename="well_architected_lab_network_firewall.yaml" %}}
     * Under *NamingPrefix* specify a prefix for resources deployed by this stack (for easy identification), or leave as-is to use the default prefix of *well-architected-labs*
