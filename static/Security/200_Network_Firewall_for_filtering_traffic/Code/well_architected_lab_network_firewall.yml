@@ -5,8 +5,7 @@ Description: >-
   Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
   Licensed under the Apache License, Version 2.0 (the "License").
   You may not use this file except in compliance with the License.
-  A copy of the License is located at
-      https://www.apache.org/licenses/LICENSE-2.0
+  A copy of the License is located at https://www.apache.org/licenses/LICENSE-2.0
   or in the "license" file accompanying this file. This file is distributed 
   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
   express or implied. See the License for the specific language governing 
@@ -216,6 +215,24 @@ Resources:
                     - 'aws:drop'
                 Priority: 10
       Capacity: 20
+
+  FirewallAlertLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["-", [!Ref NamingPrefix, "anf-log"]]
+      RetentionInDays: 1
+
+  FirewallLogConfiguration:
+    Type: AWS::NetworkFirewall::LoggingConfiguration
+    Properties: 
+      FirewallArn: !Ref NetworkFirewall
+      FirewallName: !Join ["-", [!Ref NamingPrefix, "anf"]]
+      LoggingConfiguration: 
+        LogDestinationConfigs:
+          - LogType: FLOW
+            LogDestinationType: CloudWatchLogs
+            LogDestination:
+              logGroup: !Ref FirewallAlertLogGroup
 
   # IAM Role to enable Cloudwatch Logs as well as SSM access for the test.
   IAMRole:

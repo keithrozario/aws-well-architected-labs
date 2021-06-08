@@ -26,7 +26,7 @@ Using AWS CloudFormation we are going to deploy:
 
 1. Download the latest version of the CloudFormation template here: [well_architected_lab_network_firewall.yaml](/Security/200_Network_Firewall_for_filtering_traffic/Code/well_architected_lab_network_firewall.yaml)
 
-{{% common/CreateNewCloudFormationStack stackname="NetworkFirewall" templatename="well_architected_lab_network_firewall.yaml" %}}
+{{% common/CreateNewCloudFormationStack stackname="network-firewall" templatename="well_architected_lab_network_firewall.yaml" %}}
     * Under *NamingPrefix* specify a prefix for resources deployed by this stack (for easy identification), or leave as-is to use the default prefix of *well-architected-labs*
     * Under *LatestAmiId* you may leave as-is to use the latest Amazon Linux 2 AMI for our EC2 instance.
 {{% /common/CreateNewCloudFormationStack %}}
@@ -40,5 +40,9 @@ To check if your deployments were successful:
 3. Select the instance name starting with the naming prefix you selected e.g.*well-architected-labs-instance* and click start session.
 4. A terminal window should appear on screen.
 
+{{% notice note %}}
+An SSH key is not configured in this lab, instead [AWS Systems Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/what-is-systems-manager.html) should be used to manage the EC2 instances as a more secure and scalable method.  
+If you do not see your instance among the Target Instances list, wait 10 minutes after the cloud formation deployment is complete.
+{{% /notice %}}
 
 You have now set up the lab environment and are ready to proceed to the next step!
