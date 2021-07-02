@@ -2,11 +2,13 @@
 title: "Tear down this lab"
 date: 2021-06-03T14:47:09+08:00
 chapter: false
-weight: 5
-pre: "<b>5. </b>"
+weight: 6
+pre: "<b>6. </b>"
 ---
 
-Delete the cloudformation stack:
+We recommend you tear down the infrastructure once the lab is complete, to avoid incurring additional charges.
+
+### 6.1 Delete the cloudformation stack:
 
 1. Sign in to the AWS Management Console, and open the CloudFormation console at https://console.aws.amazon.com/cloudformation/.
 2. Select the `network-firewall` stack.

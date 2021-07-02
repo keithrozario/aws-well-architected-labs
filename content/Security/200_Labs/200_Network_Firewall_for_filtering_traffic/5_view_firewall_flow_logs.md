@@ -2,8 +2,8 @@
 title: "View Firewall Flow Logs"
 date: 2021-06-03T14:47:09+08:00
 chapter: false
-weight: 4
-pre: "<b>4. </b>"
+weight: 5
+pre: "<b>5. </b>"
 ---
 
 By default, the lab enables flow logging on the AWS Network Firewall, that logs data to a Cloudwatch log group. Flow logging captures all network flow from our firewall's stateful engine.
@@ -12,7 +12,7 @@ By default, the lab enables flow logging on the AWS Network Firewall, that logs 
 Flow logs do not capture the firewall's *stateless* engine, only those packets that are routed to the firewalls *stateful* engine.
 {{% /notice %}}
 
-### 3.1 View Logs in CloudWatch Logs Group
+### 5.1 View Logs in CloudWatch Logs Group
 
 1. Open the Cloudwatch console at https://console.aws.amazon.com/cloudwatch/
 2. Select the log group ending with *anf-log* (e.g. well-architected-labs-anf-log)

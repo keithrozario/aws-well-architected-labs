@@ -2,13 +2,13 @@
 title: "Modify Stateful Firewall Rule Group"
 date: 2021-06-03T14:47:09+08:00
 chapter: false
-weight: 3
-pre: "<b>3. </b>"
+weight: 4
+pre: "<b>4. </b>"
 ---
 
 Using the AWS Network Firewall, we will modify the stateful Rule Group to allow HTTPS traffic to a specific domain.
 
-### 3.1 Modify the Stateful Rule Group
+### 4.1 Modify the Stateful Rule Group
 
 By default, the lab deploys a Stateful Rule Group with a rule that only allows the following domains **.amazonaws.com**, **.amazon.com**. In this step we will allow additional domains, by adding them to the allow list.
 
@@ -20,10 +20,10 @@ By default, the lab deploys a Stateful Rule Group with a rule that only allows t
 6. Enter the list of domains you wish to allow and click save
 
 {{% notice note %}}
-Indicate wildcard domains with an initial '.'. For example,.example.com matches example.com and matches all subdomains of example.com, such as abc.example.com and www.example.com. 
+Indicate wildcard domains with an initial '.'. For example, .example.com matches example.com and all subdomains of example.com, such as abc.example.com and www.example.com. 
 {{% /notice %}}
 
-### 3.2 Test the rule
+### 4.2 Test the rule
 
 1. Open the AWS Console for Session Manager[https://console.aws.amazon.com/systems-manager/session-manager](https://console.aws.amazon.com/systems-manager/session-manager)
 2. Click on Start Session
